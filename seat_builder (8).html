@@ -768,43 +768,12 @@ Confidential · EOS Seat Builder · ${data.company || 'Leadership'}
     }
     const company = data.company ? data.company + ' — ' : '';
     const person = data.personName ? ` (${data.personName})` : '';
-    document.getElementById('modalBody').innerHTML = `This will save <strong>${company}${data.seatName}${person}</strong> to the shared <strong>EOS Seat Builders</strong> folder in your Google Workspace.`;
+    document.getElementById('modalBody').innerHTML = `This will save <strong>${company}${data.seatName}${person}</strong> to the shared <strong>EOS Seat Builders</strong> folder in Google Drive.`;
     document.getElementById('saveModal').classList.add('open');
   }
 
   function closeModal() {
     document.getElementById('saveModal').classList.remove('open');
-  }
-
-  const CLIENT_ID = '633809972286-vpvtocpvfd7r5ddq7f3nums4cn7b3h11.apps.googleusercontent.com';
-  const SCOPE = 'https://www.googleapis.com/auth/drive.file';
-
-  function waitForGIS() {
-    return new Promise((resolve) => {
-      if (window.google && window.google.accounts) return resolve();
-      const interval = setInterval(() => {
-        if (window.google && window.google.accounts) { clearInterval(interval); resolve(); }
-      }, 100);
-    });
-  }
-
-  async function getToken() {
-    if (window._gToken && window._gTokenExpiry > Date.now()) return window._gToken;
-    await waitForGIS();
-    return new Promise((resolve, reject) => {
-      const client = google.accounts.oauth2.initTokenClient({
-        client_id: CLIENT_ID,
-        scope: SCOPE,
-        prompt: 'select_account',
-        callback: (resp) => {
-          if (resp.error) return reject(new Error(resp.error));
-          window._gToken = resp.access_token;
-          window._gTokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
-          resolve(resp.access_token);
-        }
-      });
-      client.requestAccessToken();
-    });
   }
 
   async function confirmSave() {
@@ -814,41 +783,76 @@ Confidential · EOS Seat Builder · ${data.company || 'Leadership'}
     const txt = document.getElementById('saveText');
     const btn = document.getElementById('saveBtn');
     dot.className = 'save-dot saving';
-    txt.textContent = 'Signing in...';
+    txt.textContent = 'Saving...';
     btn.disabled = true;
+
     try {
-      const token = await getToken();
-      txt.textContent = 'Saving...';
-      const folderId = '1WL6ynI1m8sXbzxw0d3ofxanj_cGoZZEV';
+      const content = formatAsDoc(data);
       const company = data.company ? data.company + ' — ' : '';
       const person = data.personName ? ` (${data.personName})` : '';
       const docName = `${company}${data.seatName || 'Untitled Seat'}${person}`;
-      const content = formatAsDoc(data);
-      const boundary = 'eos_boundary_' + Date.now();
-      const metadata = JSON.stringify({ name: docName, mimeType: 'application/vnd.google-apps.document', parents: [folderId] });
-      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${content}\r\n--${boundary}--`;
-      const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+
+      const prompt = `You are a file-saving assistant. Save the following completed EOS Seat Builder to Google Drive.
+
+The file should be saved with:
+- Title: "${docName}"
+- Parent folder ID: 1WL6ynI1m8sXbzxw0d3ofxanj_cGoZZEV
+- Format: Google Doc (text/plain which converts to Google Doc)
+
+Here is the content to save:
+
+${content}
+
+Use your Google Drive MCP tool to create this file now. Set the parentId to "1WL6ynI1m8sXbzxw0d3ofxanj_cGoZZEV" and the title to "${docName}". Return only "SAVED" if successful or "ERROR" if it failed.`;
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': `multipart/related; boundary=${boundary}` },
-        body
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': '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',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-allow-browser': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 256,
+          messages: [{ role: 'user', content: prompt }],
+          mcp_servers: [{
+            type: 'url',
+            url: 'https://drivemcp.googleapis.com/mcp/v1',
+            name: 'google-drive-mcp'
+          }]
+        })
       });
-      if (!uploadResp.ok) throw new Error('Upload failed');
-      dot.className = 'save-dot saved'; txt.textContent = 'Saved to Drive';
-      btn.disabled = false; btn.textContent = 'Save again';
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || 'API request failed');
+      }
+
+      const result = await response.json();
+      const text = result.content?.map(b => b.text || '').join('') || '';
+
+      if (text.includes('ERROR')) throw new Error('Save failed');
+
+      dot.className = 'save-dot saved';
+      txt.textContent = 'Saved to Drive';
+      btn.disabled = false;
+      btn.textContent = 'Save again';
       const successCard = document.getElementById('successCard');
       successCard.classList.add('show');
-      document.getElementById('successBody').innerHTML = `<strong>${docName}</strong> has been saved to the <strong>EOS Seat Builders</strong> folder in your Google Workspace.`;
+      document.getElementById('successBody').innerHTML = `<strong>${docName}</strong> has been saved to the <strong>EOS Seat Builders</strong> folder in Google Drive.`;
       successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
     } catch (err) {
-      dot.className = 'save-dot error'; txt.textContent = 'Save failed — try again';
-      btn.disabled = false; console.error(err);
-      alert('Could not save to Google Drive. Please try again.');
+      dot.className = 'save-dot error';
+      txt.textContent = 'Save failed — try again';
+      btn.disabled = false;
+      console.error(err);
+      alert('Could not save. Please try again. Error: ' + err.message);
     }
   }
+
 </script>
-
-<!-- Google Identity Services -->
-<script src="https://accounts.google.com/gsi/client" async></script>
-
 </body>
 </html>
