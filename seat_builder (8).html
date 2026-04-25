@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EOS Seat Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #F7F6F2;
+    --surface: #FFFFFF;
+    --border: #E2DFD8;
+    --border-strong: #C8C4BB;
+    --text: #1A1915;
+    --text-mid: #5C5A54;
+    --text-muted: #9A9890;
+    --accent: #1B4332;
+    --accent-light: #D8EBE0;
+    --accent-text: #1B4332;
+    --warn: #7C3813;
+    --warn-light: #FDF0E6;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  html { background: var(--bg); }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    line-height: 1.6;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* TOP BAR */
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar-logo { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--accent); letter-spacing: -0.02em; }
+  .topbar-divider { width: 1px; height: 20px; background: var(--border); }
+  .topbar-title { font-size: 13px; color: var(--text-mid); font-weight: 400; }
+  .topbar-right { display: flex; align-items: center; gap: 10px; }
+
+  .btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 7px 16px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-mid);
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg); }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .btn-primary:hover { background: #143327; }
+  .btn-primary:disabled { background: #9AB8AD; border-color: #9AB8AD; cursor: not-allowed; }
+
+  /* LAYOUT */
+  .page { max-width: 720px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+  /* PROGRESS */
+  .progress-bar { display: flex; gap: 6px; margin-bottom: 2rem; }
+  .progress-step {
+    flex: 1; height: 3px; border-radius: 2px;
+    background: var(--border);
+    transition: background 0.3s;
+  }
+  .progress-step.done { background: var(--accent); }
+  .progress-step.active { background: #7FB89F; }
+
+  /* PART HEADER */
+  .part-header { margin-bottom: 1.5rem; }
+  .part-eyebrow {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+  }
+  .part-title { font-family: 'DM Serif Display', serif; font-size: 26px; color: var(--text); letter-spacing: -0.02em; line-height: 1.2; }
+  .part-desc { font-size: 13px; color: var(--text-mid); margin-top: 6px; line-height: 1.6; max-width: 520px; }
+
+  /* SECTION CARD */
+  .section-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    margin-bottom: 1rem;
+    overflow: hidden;
+  }
+  .section-head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 16px;
+    cursor: pointer;
+    user-select: none;
+    background: var(--surface);
+    transition: background 0.15s;
+  }
+  .section-head:hover { background: var(--bg); }
+  .section-letter {
+    width: 24px; height: 24px; border-radius: 6px;
+    background: var(--accent-light); color: var(--accent-text);
+    font-size: 11px; font-weight: 500;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .section-tag { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+  .section-chev { font-size: 10px; color: var(--text-muted); margin-left: 8px; transition: transform 0.2s; }
+  .section-chev.open { transform: rotate(90deg); }
+  .section-body {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .section-hint { font-size: 12px; color: var(--text-mid); margin-bottom: 14px; line-height: 1.6; }
+
+  /* FIELDS */
+  .field-grid { display: grid; gap: 12px; margin-bottom: 12px; }
+  .field-grid.cols2 { grid-template-columns: 1fr 1fr; }
+  .field-grid.cols3 { grid-template-columns: 1fr 1fr 1fr; }
+  .field-grid.col1 { grid-template-columns: 1fr; }
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 500; color: var(--text-mid); letter-spacing: 0.03em; }
+  .field input, .field textarea, .field select {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 11px;
+    width: 100%;
+    transition: border-color 0.15s, background 0.15s;
+    outline: none;
+    resize: vertical;
+  }
+  .field input:focus, .field textarea:focus, .field select:focus {
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .field textarea { min-height: 68px; }
+  .field select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%239A9890' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; padding-right: 28px; cursor: pointer; }
+
+  /* LAYER PILLS */
+  .layer-pills { display: flex; gap: 6px; flex-wrap: wrap; }
+  .layer-pill {
+    font-size: 12px; padding: 5px 13px;
+    border-radius: 20px;
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .layer-pill:hover { border-color: var(--accent); color: var(--accent); }
+  .layer-pill.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* RESPONSIBILITIES */
+  .resp-row { display: flex; gap: 8px; align-items: flex-start; margin-bottom: 8px; }
+  .resp-num { font-size: 12px; color: var(--text-muted); padding-top: 9px; min-width: 14px; text-align: right; flex-shrink: 0; }
+  .add-link { font-size: 12px; color: var(--accent); background: none; border: none; cursor: pointer; padding: 4px 0; font-family: 'DM Sans', sans-serif; }
+  .add-link:hover { text-decoration: underline; }
+  .field-note { font-size: 11px; color: var(--text-muted); margin-top: 8px; }
+
+  /* METRIC ROW */
+  .metric-row { display: grid; grid-template-columns: 2fr 1.2fr 1.5fr; gap: 10px; margin-bottom: 10px; align-items: end; }
+
+  /* DIVIDER */
+  .part-divider {
+    display: flex; align-items: center; gap: 14px;
+    margin: 2rem 0 1.5rem;
+  }
+  .divider-line { flex: 1; border-top: 1px solid var(--border); }
+  .divider-badge {
+    font-size: 11px; color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  /* PERSON INTRO BOX */
+  .person-box {
+    background: var(--accent-light);
+    border: 1px solid #B5D9C8;
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+    margin-bottom: 1rem;
+  }
+  .person-box-title { font-size: 13px; font-weight: 500; color: var(--accent-text); margin-bottom: 4px; }
+  .person-box-body { font-size: 12px; color: #2D6651; line-height: 1.6; }
+
+  /* GWC */
+  .gwc-block { display: flex; flex-direction: column; gap: 10px; }
+  .gwc-row {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    background: var(--bg);
+  }
+  .gwc-top { display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .gwc-pill {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--surface); border: 1px solid var(--border-strong);
+    font-size: 13px; font-weight: 500; color: var(--text);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .gwc-name { font-size: 13px; font-weight: 500; }
+  .gwc-desc { font-size: 12px; color: var(--text-mid); line-height: 1.6; margin-bottom: 10px; }
+  .gwc-btns { display: flex; gap: 8px; margin-bottom: 10px; }
+  .gwc-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; padding: 5px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .gwc-btn.yes { background: #EAF3DE; border-color: #7DB55A; color: #2D5A0E; }
+  .gwc-btn.notyet { background: var(--warn-light); border-color: #D4956A; color: var(--warn); }
+
+  .gwc-summary-row {
+    border-top: 1px solid var(--border);
+    padding-top: 14px; margin-top: 4px;
+  }
+  .gwc-sum-label { font-size: 11px; font-weight: 500; color: var(--text-muted); letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 8px; }
+  .gwc-sum-opts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .gwc-sum-btn {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 12px; padding: 5px 14px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-strong);
+    background: var(--surface);
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .gwc-sum-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  /* SAVE STATUS */
+  .save-status {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--border-strong); }
+  .save-dot.saving { background: #E8A838; animation: pulse 1s infinite; }
+  .save-dot.saved { background: #5DA84E; }
+  .save-dot.error { background: #C94B4B; }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+
+  /* MODAL */
+  .modal-backdrop {
+    display: none; position: fixed; inset: 0;
+    background: rgba(26,25,21,0.5);
+    z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    width: 420px;
+    max-width: 90vw;
+    border: 1px solid var(--border);
+  }
+  .modal-title { font-family: 'DM Serif Display', serif; font-size: 20px; margin-bottom: 8px; }
+  .modal-body { font-size: 13px; color: var(--text-mid); line-height: 1.6; margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* SUCCESS STATE */
+  .success-card {
+    display: none;
+    background: var(--accent-light);
+    border: 1px solid #B5D9C8;
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    text-align: center;
+    margin-top: 1.5rem;
+  }
+  .success-card.show { display: block; }
+  .success-icon { font-size: 28px; margin-bottom: 8px; }
+  .success-title { font-family: 'DM Serif Display', serif; font-size: 18px; color: var(--accent); margin-bottom: 6px; }
+  .success-body { font-size: 13px; color: #2D6651; line-height: 1.6; }
+
+  hr.field-divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+
+  @media (max-width: 600px) {
+    .field-grid.cols2, .field-grid.cols3 { grid-template-columns: 1fr; }
+    .metric-row { grid-template-columns: 1fr; }
+    .topbar { padding: 0 1rem; }
+    .page { padding: 1.5rem 1rem 4rem; }
+    .gwc-sum-opts { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="topbar-logo">EOS</span>
+    <div class="topbar-divider"></div>
+    <span class="topbar-title">Seat Builder</span>
+  </div>
+  <div class="topbar-right">
+    <div class="save-status" id="saveStatus">
+      <div class="save-dot" id="saveDot"></div>
+      <span id="saveText">Not yet saved</span>
+    </div>
+    <button class="btn btn-primary" id="saveBtn" onclick="triggerSave()">Save to Drive</button>
+  </div>
+</div>
+
+<div class="page">
+
+  <!-- PROGRESS -->
+  <div class="progress-bar">
+    <div class="progress-step active" id="ps1"></div>
+    <div class="progress-step" id="ps2"></div>
+    <div class="progress-step" id="ps3"></div>
+    <div class="progress-step" id="ps4"></div>
+    <div class="progress-step" id="ps5"></div>
+    <div class="progress-step" id="ps6"></div>
+  </div>
+
+  <!-- PART ONE -->
+  <div class="part-header">
+    <div class="part-eyebrow">Part one</div>
+    <div class="part-title">Define the seat</div>
+    <div class="part-desc">Complete this section independently of who currently fills the seat. The seat should stand on its own — describe the function, not the person.</div>
+  </div>
+
+  <!-- SECTION A -->
+  <div class="section-card">
+    <div class="section-head" onclick="toggleSection('A')">
+      <div class="section-letter">A</div>
+      <span class="section-name">Seat identity</span>
+      <span class="section-tag">Start here</span>
+      <span class="section-chev open" id="chevA">&#9654;</span>
+    </div>
+    <div class="section-body" id="bodyA">
+      <p class="section-hint">Name the function, not the person. This seat should make sense regardless of who fills it.</p>
+      <div class="field-grid cols2">
+        <div class="field">
+          <label>Company</label>
+          <select id="company">
+            <option value="">Select company...</option>
+            <option>SeedTrust</option>
+            <option>Orchid Software Solutions</option>
+            <option>Gather Records</option>
+            <option>VeraTru</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Seat name</label>
+          <input type="text" id="seatName" placeholder="e.g., PPC &amp; Paid Acquisition Lead" oninput="updateProgress()" />
+        </div>
+      </div>
+      <div class="field-grid cols2">
+        <div class="field">
+          <label>Reports to (seat, not person)</label>
+          <input type="text" id="reportsTo" placeholder="e.g., Sr. Director of Growth" />
+        </div>
+        <div class="field">
+          <label>Direct reports (seat names only)</label>
+          <input type="text" id="directReports" placeholder="e.g., Analyst · Coordinator" />
+        </div>
+      </div>
+      <div class="field">
+        <label style="margin-bottom:6px;display:block;">Layer in org chart</label>
+        <div class="layer-pills">
+          <button class="layer-pill" onclick="selectLayer(this,'L1')">Layer 1 — Visionary / Integrator</button>
+          <button class="layer-pill" onclick="selectLayer(this,'L2')">Layer 2 — Dept head</button>
+          <button class="layer-pill" onclick="selectLayer(this,'L3')">Layer 3 — Functional lead</button>
+          <button class="layer-pill" onclick="selectLayer(this,'L4')">Layer 4+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION B -->
+  <div class="section-card">
+    <div class="section-head" onclick="toggleSection('B')">
+      <div class="section-letter">B</div>
+      <span class="section-name">Seat purpose</span>
+      <span class="section-tag">The why</span>
+      <span class="section-chev open" id="chevB">&#9654;</span>
+    </div>
+    <div class="section-body" id="bodyB">
+      <p class="section-hint">Why does this seat exist? Not what it does day-to-day — why the company needs this function at all.</p>
+      <div class="field-grid col1">
+        <div class="field">
+          <label>Why this seat exists</label>
+          <textarea id="whyExists" placeholder="e.g., This seat exists to own the paid acquisition funnel and serve as the single point of accountability for how the company spends paid media dollars..." oninput="updateProgress()"></textarea>
+        </div>
+      </div>
+      <hr class="field-divider" />
+      <div class="field-grid col1">
+        <div class="field">
+          <label>The one outcome this seat must produce above all others</label>
+          <textarea id="topOutcome" placeholder="e.g., Qualified leads from paid channels at or below target cost per lead..." style="min-height:52px;"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION C -->
+  <div class="section-card">
+    <div class="section-head" onclick="toggleSection('C')">
+      <div class="section-letter">C</div>
+      <span class="section-name">Key responsibilities</span>
+      <span class="section-tag">3–7 outcomes</span>
+      <span class="section-chev open" id="chevC">&#9654;</span>
+    </div>
+    <div class="section-body" id="bodyC">
+      <p class="section-hint">List outcomes this seat owns — not daily tasks. Each should be something you can hold this seat accountable for in an L10.</p>
+      <div id="respList"></div>
+      <button class="add-link" onclick="addResp()">+ Add responsibility</button>
+      <p class="field-note">More than 7? Either split the seat or move the excess to a process doc.</p>
+    </div>
+  </div>
+
+  <!-- SECTION D -->
+  <div class="section-card">
+    <div class="section-head" onclick="toggleSection('D')">
+      <div class="section-letter">D</div>
+      <span class="section-name">Scorecard metrics</span>
+      <span class="section-tag">1–3 numbers</span>
+      <span class="section-chev open" id="chevD">&#9654;</span>
+    </div>
+    <div class="section-body" id="bodyD">
+      <p class="section-hint">What 1–3 numbers will tell you each week whether this seat is performing? If you can't name a metric, the seat's purpose may not be clear enough yet.</p>
+      <div id="metricList"></div>
+      <button class="add-link" onclick="addMetric()">+ Add metric</button>
+    </div>
+  </div>
+
+  <!-- DIVIDER -->
+  <div class="part-divider">
+    <div class="divider-line"></div>
+    <div class="divider-badge">Seat defined above &middot; Person evaluated below</div>
+    <div class="divider-line"></div>
+  </div>
+
+  <!-- PART TWO -->
+  <div class="person-box">
+    <div class="person-box-title">Part two — Person in seat</div>
+    <div class="person-box-body">With the seat clearly defined above, now evaluate the person currently filling it. The seat sets the standard — the person is measured against it, not the other way around.</div>
+  </div>
+
+  <!-- SECTION E -->
+  <div class="section-card">
+    <div class="section-head" onclick="toggleSection('E')">
+      <div class="section-letter">E</div>
+      <span class="section-name">Person in seat</span>
+      <span class="section-tag">Who holds this seat today</span>
+      <span class="section-chev open" id="chevE">&#9654;</span>
+    </div>
+    <div class="section-body" id="bodyE">
+      <div class="field-grid cols2">
+        <div class="field">
+          <label>Person currently in seat</label>
+          <input type="text" id="personName" placeholder="Full name" oninput="updateProgress()" />
+        </div>
+        <div class="field">
+          <label>Assessment date</label>
+          <input type="date" id="assessDate" />
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION F -->
+  <div class="section-card">
+    <div class="section-head" onclick="toggleSection('F')">
+      <div class="section-letter">F</div>
+      <span class="section-name">GWC assessment</span>
+      <span class="section-tag">Get it · Want it · Capacity</span>
+      <span class="section-chev open" id="chevF">&#9654;</span>
+    </div>
+    <div class="section-body" id="bodyF">
+      <p class="section-hint">All three must be YES for the right person to be in the right seat. Answer honestly — this is a leadership conversation, not a performance review.</p>
+      <div class="gwc-block">
+
+        <div class="gwc-row">
+          <div class="gwc-top">
+            <div class="gwc-pill">G</div>
+            <span class="gwc-name">Get it</span>
+          </div>
+          <p class="gwc-desc">Do they truly understand this seat? Do they intuitively grasp what success looks like and how it connects to the rest of the team? This isn't about intelligence — it's about alignment with the function.</p>
+          <div class="gwc-btns">
+            <button class="gwc-btn" id="g-yes" onclick="setGWC('g','yes')">Yes — fully</button>
+            <button class="gwc-btn" id="g-no" onclick="setGWC('g','no')">Not yet</button>
+          </div>
+          <div class="field"><label>Notes</label><input type="text" id="g-notes" placeholder="Optional context..." /></div>
+        </div>
+
+        <div class="gwc-row">
+          <div class="gwc-top">
+            <div class="gwc-pill">W</div>
+            <span class="gwc-name">Want it</span>
+          </div>
+          <p class="gwc-desc">Do they genuinely want this seat? Are they motivated by the role itself — not just the title, the pay, or the comfort of familiarity? Would they choose this seat again?</p>
+          <div class="gwc-btns">
+            <button class="gwc-btn" id="w-yes" onclick="setGWC('w','yes')">Yes — fully</button>
+            <button class="gwc-btn" id="w-no" onclick="setGWC('w','no')">Not yet</button>
+          </div>
+          <div class="field"><label>Notes</label><input type="text" id="w-notes" placeholder="Optional context..." /></div>
+        </div>
+
+        <div class="gwc-row">
+          <div class="gwc-top">
+            <div class="gwc-pill">C</div>
+            <span class="gwc-name">Capacity</span>
+          </div>
+          <p class="gwc-desc">Do they have the time, skills, and bandwidth to execute this seat at the level the business needs? Capacity gaps that aren't named become accountability gaps.</p>
+          <div class="gwc-btns">
+            <button class="gwc-btn" id="c-yes" onclick="setGWC('c','yes')">Yes — fully</button>
+            <button class="gwc-btn" id="c-no" onclick="setGWC('c','no')">Not yet</button>
+          </div>
+          <div class="field"><label>Notes</label><input type="text" id="c-notes" placeholder="Optional context..." /></div>
+        </div>
+
+        <div class="gwc-summary-row">
+          <div class="gwc-sum-label">Overall assessment</div>
+          <div class="gwc-sum-opts">
+            <button class="gwc-sum-btn" id="sum-rr" onclick="setSummary('rr')">Right person, right seat</button>
+            <button class="gwc-sum-btn" id="sum-rw" onclick="setSummary('rw')">Right person, wrong seat</button>
+            <button class="gwc-sum-btn" id="sum-ids" onclick="setSummary('ids')">Needs further discussion (IDS)</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-card" id="successCard">
+    <div class="success-icon">&#10003;</div>
+    <div class="success-title">Saved to Google Drive</div>
+    <div class="success-body" id="successBody">Your seat builder has been saved.</div>
+  </div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-backdrop" id="saveModal">
+  <div class="modal">
+    <div class="modal-title">Save to Google Drive</div>
+    <div class="modal-body" id="modalBody">This will save the completed seat builder as a document in your Google Drive under <strong>EOS Seat Builders</strong>.</div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" id="confirmSaveBtn" onclick="confirmSave()">Save now</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- SECTION TOGGLE ---
+  function toggleSection(id) {
+    const body = document.getElementById('body' + id);
+    const chev = document.getElementById('chev' + id);
+    const open = body.style.display !== 'none';
+    body.style.display = open ? 'none' : '';
+    chev.classList.toggle('open', !open);
+  }
+
+  // --- LAYER PILLS ---
+  let selectedLayer = '';
+  function selectLayer(btn, val) {
+    document.querySelectorAll('.layer-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedLayer = val;
+    updateProgress();
+  }
+
+  // --- RESPONSIBILITIES ---
+  let respCount = 0;
+  function addRespRow(i) {
+    const list = document.getElementById('respList');
+    const row = document.createElement('div');
+    row.className = 'resp-row';
+    row.innerHTML = `<span class="resp-num">${i}</span><div class="field" style="flex:1"><input type="text" id="resp${i}" placeholder="${i === 1 ? 'Highest priority outcome...' : 'Outcome this seat owns...'}" /></div>`;
+    list.appendChild(row);
+  }
+  function addResp() {
+    if (respCount < 7) { respCount++; addRespRow(respCount); }
+  }
+  // seed 3 rows on load
+  addResp(); addResp(); addResp();
+
+  // --- METRICS ---
+  let metricCount = 0;
+  function addMetricRow(i) {
+    const list = document.getElementById('metricList');
+    const row = document.createElement('div');
+    row.className = 'metric-row';
+    row.innerHTML = `
+      <div class="field"><label>Metric ${i}</label><input type="text" id="metric${i}" placeholder="e.g., Cost per lead" /></div>
+      <div class="field"><label>Target</label><input type="text" id="target${i}" placeholder="e.g., &lt; $45" /></div>
+      <div class="field"><label>Reported by</label><input type="text" id="reportedBy${i}" placeholder="Seat name" /></div>`;
+    list.appendChild(row);
+  }
+  function addMetric() {
+    if (metricCount < 3) { metricCount++; addMetricRow(metricCount); }
+  }
+  // seed 1 row on load
+  addMetric();
+
+  // --- GWC ---
+  const gwcState = {};
+  function setGWC(letter, val) {
+    gwcState[letter] = val;
+    const yes = document.getElementById(letter + '-yes');
+    const no = document.getElementById(letter + '-no');
+    if (val === 'yes') { yes.classList.add('yes'); yes.classList.remove('notyet'); no.classList.remove('yes','notyet'); }
+    else { no.classList.add('notyet'); no.classList.remove('yes'); yes.classList.remove('yes','notyet'); }
+    updateProgress();
+  }
+
+  let summaryVal = '';
+  function setSummary(val) {
+    summaryVal = val;
+    ['rr','rw','ids'].forEach(k => document.getElementById('sum-' + k).classList.remove('active'));
+    document.getElementById('sum-' + val).classList.add('active');
+  }
+
+  // --- PROGRESS ---
+  function updateProgress() {
+    const filled = [
+      !!document.getElementById('seatName')?.value.trim(),
+      !!document.getElementById('whyExists')?.value.trim(),
+      !!document.getElementById('resp1')?.value.trim(),
+      !!document.getElementById('metric1')?.value.trim(),
+      !!document.getElementById('personName')?.value.trim(),
+      !!(gwcState['g'] && gwcState['w'] && gwcState['c'])
+    ];
+    filled.forEach((done, i) => {
+      const el = document.getElementById('ps' + (i + 1));
+      if (el) { el.className = 'progress-step ' + (done ? 'done' : (i === filled.filter(Boolean).length ? 'active' : '')); }
+    });
+  }
+
+  // --- COLLECT DATA ---
+  function collectData() {
+    const resps = [];
+    for (let i = 1; i <= respCount; i++) {
+      const v = document.getElementById('resp' + i)?.value.trim();
+      if (v) resps.push(v);
+    }
+    const metrics = [];
+    for (let i = 1; i <= metricCount; i++) {
+      const m = document.getElementById('metric' + i)?.value.trim();
+      const t = document.getElementById('target' + i)?.value.trim();
+      const r = document.getElementById('reportedBy' + i)?.value.trim();
+      if (m) metrics.push({ metric: m, target: t, reportedBy: r });
+    }
+    return {
+      company: document.getElementById('company')?.value || '',
+      seatName: document.getElementById('seatName')?.value.trim() || '',
+      reportsTo: document.getElementById('reportsTo')?.value.trim() || '',
+      directReports: document.getElementById('directReports')?.value.trim() || '',
+      layer: selectedLayer,
+      whyExists: document.getElementById('whyExists')?.value.trim() || '',
+      topOutcome: document.getElementById('topOutcome')?.value.trim() || '',
+      responsibilities: resps,
+      metrics,
+      personName: document.getElementById('personName')?.value.trim() || '',
+      assessDate: document.getElementById('assessDate')?.value || '',
+      gwc: {
+        g: gwcState['g'] || '', gNotes: document.getElementById('g-notes')?.value.trim() || '',
+        w: gwcState['w'] || '', wNotes: document.getElementById('w-notes')?.value.trim() || '',
+        c: gwcState['c'] || '', cNotes: document.getElementById('c-notes')?.value.trim() || '',
+      },
+      summary: summaryVal,
+      savedAt: new Date().toISOString()
+    };
+  }
+
+  // --- FORMAT AS GOOGLE DOC CONTENT ---
+  function formatAsDoc(data) {
+    const gwcLabel = v => v === 'yes' ? 'Yes — fully' : v === 'no' ? 'Not yet' : 'Not assessed';
+    const sumLabel = { rr: 'Right person, right seat', rw: 'Right person, wrong seat', ids: 'Needs further discussion (IDS)', '': 'Not assessed' };
+    const resps = data.responsibilities.map((r, i) => `${i+1}. ${r}`).join('\n');
+    const metrics = data.metrics.map(m => `• ${m.metric} | Target: ${m.target || '—'} | Reported by: ${m.reportedBy || '—'}`).join('\n');
+
+    return `EOS SEAT BUILDER
+${data.company ? data.company + ' · ' : ''}Completed ${data.savedAt ? new Date(data.savedAt).toLocaleDateString() : ''}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART ONE — THE SEAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION A — Seat Identity
+Company: ${data.company || '—'}
+Seat name: ${data.seatName || '—'}
+Reports to: ${data.reportsTo || '—'}
+Direct reports: ${data.directReports || '—'}
+Layer: ${data.layer || '—'}
+
+SECTION B — Seat Purpose
+Why this seat exists:
+${data.whyExists || '—'}
+
+Top outcome this seat must produce:
+${data.topOutcome || '—'}
+
+SECTION C — Key Responsibilities
+${resps || '—'}
+
+SECTION D — Scorecard Metrics
+${metrics || '—'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PART TWO — PERSON IN SEAT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+SECTION E — Person in Seat
+Person: ${data.personName || '—'}
+Assessment date: ${data.assessDate || '—'}
+
+SECTION F — GWC Assessment
+G — Get it: ${gwcLabel(data.gwc.g)}${data.gwc.gNotes ? '\n   Notes: ' + data.gwc.gNotes : ''}
+W — Want it: ${gwcLabel(data.gwc.w)}${data.gwc.wNotes ? '\n   Notes: ' + data.gwc.wNotes : ''}
+C — Capacity: ${gwcLabel(data.gwc.c)}${data.gwc.cNotes ? '\n   Notes: ' + data.gwc.cNotes : ''}
+
+Overall assessment: ${sumLabel[data.summary] || '—'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Confidential · EOS Seat Builder · ${data.company || 'Leadership'}
+`;
+  }
+
+  // --- SAVE FLOW ---
+  function triggerSave() {
+    const data = collectData();
+    if (!data.seatName) {
+      alert('Please enter a seat name before saving.');
+      return;
+    }
+    const company = data.company ? data.company + ' — ' : '';
+    const person = data.personName ? ` (${data.personName})` : '';
+    document.getElementById('modalBody').innerHTML = `This will save <strong>${company}${data.seatName}${person}</strong> to the shared <strong>EOS Seat Builders</strong> folder in your Google Workspace.`;
+    document.getElementById('saveModal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('saveModal').classList.remove('open');
+  }
+
+  const CLIENT_ID = '633809972286-vpvtocpvfd7r5ddq7f3nums4cn7b3h11.apps.googleusercontent.com';
+  const SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+  function waitForGIS() {
+    return new Promise((resolve) => {
+      if (window.google && window.google.accounts) return resolve();
+      const interval = setInterval(() => {
+        if (window.google && window.google.accounts) { clearInterval(interval); resolve(); }
+      }, 100);
+    });
+  }
+
+  async function getToken() {
+    if (window._gToken && window._gTokenExpiry > Date.now()) return window._gToken;
+    await waitForGIS();
+    return new Promise((resolve, reject) => {
+      const client = google.accounts.oauth2.initTokenClient({
+        client_id: CLIENT_ID,
+        scope: SCOPE,
+        prompt: 'select_account',
+        callback: (resp) => {
+          if (resp.error) return reject(new Error(resp.error));
+          window._gToken = resp.access_token;
+          window._gTokenExpiry = Date.now() + (resp.expires_in - 60) * 1000;
+          resolve(resp.access_token);
+        }
+      });
+      client.requestAccessToken();
+    });
+  }
+
+  async function confirmSave() {
+    closeModal();
+    const data = collectData();
+    const dot = document.getElementById('saveDot');
+    const txt = document.getElementById('saveText');
+    const btn = document.getElementById('saveBtn');
+    dot.className = 'save-dot saving';
+    txt.textContent = 'Signing in...';
+    btn.disabled = true;
+    try {
+      const token = await getToken();
+      txt.textContent = 'Saving...';
+      const folderId = '1WL6ynI1m8sXbzxw0d3ofxanj_cGoZZEV';
+      const company = data.company ? data.company + ' — ' : '';
+      const person = data.personName ? ` (${data.personName})` : '';
+      const docName = `${company}${data.seatName || 'Untitled Seat'}${person}`;
+      const content = formatAsDoc(data);
+      const boundary = 'eos_boundary_' + Date.now();
+      const metadata = JSON.stringify({ name: docName, mimeType: 'application/vnd.google-apps.document', parents: [folderId] });
+      const body = `--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${metadata}\r\n--${boundary}\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n${content}\r\n--${boundary}--`;
+      const uploadResp = await fetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': `multipart/related; boundary=${boundary}` },
+        body
+      });
+      if (!uploadResp.ok) throw new Error('Upload failed');
+      dot.className = 'save-dot saved'; txt.textContent = 'Saved to Drive';
+      btn.disabled = false; btn.textContent = 'Save again';
+      const successCard = document.getElementById('successCard');
+      successCard.classList.add('show');
+      document.getElementById('successBody').innerHTML = `<strong>${docName}</strong> has been saved to the <strong>EOS Seat Builders</strong> folder in your Google Workspace.`;
+      successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (err) {
+      dot.className = 'save-dot error'; txt.textContent = 'Save failed — try again';
+      btn.disabled = false; console.error(err);
+      alert('Could not save to Google Drive. Please try again.');
+    }
+  }
+</script>
+
+<!-- Google Identity Services -->
+<script src="https://accounts.google.com/gsi/client" async></script>
+
+</body>
+</html>
